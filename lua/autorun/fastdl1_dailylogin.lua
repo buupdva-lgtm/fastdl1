@@ -1,17 +1,20 @@
 FASTDL1_DAILYLOGIN = FASTDL1_DAILYLOGIN or {}
 
 local basePath = "fastdl1_dailylogin/"
+local sharedPath = basePath .. "shared/"
+local clientPath = basePath .. "client/"
+local serverPath = basePath .. "server/"
 
-AddCSLuaFile(basePath .. "sh_config.lua")
-AddCSLuaFile(basePath .. "cl_dailylogin.lua")
-AddCSLuaFile(basePath .. "cl_config.lua")
+AddCSLuaFile(sharedPath .. "config.lua")
+AddCSLuaFile(clientPath .. "dailylogin.lua")
+AddCSLuaFile(clientPath .. "config.lua")
 
-include(basePath .. "sh_config.lua")
+include(sharedPath .. "config.lua")
 
 if SERVER then
-    include(basePath .. "sv_dailylogin.lua")
-    include(basePath .. "sv_config.lua")
+    include(serverPath .. "dailylogin.lua")
+    include(serverPath .. "config.lua")
 else
-    include(basePath .. "cl_dailylogin.lua")
-    include(basePath .. "cl_config.lua")
+    include(clientPath .. "dailylogin.lua")
+    include(clientPath .. "config.lua")
 end
