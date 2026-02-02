@@ -28,6 +28,27 @@ local function saveConfig()
     file.Write(configPath, util.TableToJSON(FASTDL1_DAILYLOGIN.Config, true))
 end
 
+local updateCooldown = {}
+local updateDelay = 1
+local maxTextLength = 300
+
+local function sanitizeText(value)
+    if value == nil then
+        return ""
+    end
+
+    local text = tostring(value)
+    if #text > maxTextLength then
+        text = string.sub(text, 1, maxTextLength)
+    end
+
+    return text
+end
+
+local function sanitizeBool(value)
+    return value == true
+end
+
 local function hasConfigPermission(player)
     if not IsValid(player) then
         return true
@@ -58,7 +79,10 @@ concommand.Add(FASTDL1_DAILYLOGIN.Config.AdminCommand, function(player)
     end
 
     net.Start("fastdl1_dailylogin_config_open")
-    net.WriteTable(FASTDL1_DAILYLOGIN.Config)
+    net.WriteString(tostring(FASTDL1_DAILYLOGIN.Config.Title or ""))
+    net.WriteString(tostring(FASTDL1_DAILYLOGIN.Config.Subtitle or ""))
+    net.WriteString(tostring(FASTDL1_DAILYLOGIN.Config.BodyText or ""))
+    net.WriteBool(FASTDL1_DAILYLOGIN.Config.AutoShowOnSpawn == true)
     if IsValid(player) then
         net.Send(player)
     else
@@ -67,20 +91,35 @@ concommand.Add(FASTDL1_DAILYLOGIN.Config.AdminCommand, function(player)
 end)
 
 net.Receive("fastdl1_dailylogin_config_update", function(_, player)
-    if IsValid(player) and not hasConfigPermission(player) then
+    if not IsValid(player) then
         return
     end
 
-    local updated = net.ReadTable()
-    if not istable(updated) then
+    if not hasConfigPermission(player) then
         return
     end
 
-    for key, value in pairs(updated) do
-        if FASTDL1_DAILYLOGIN.Config[key] ~= nil then
-            FASTDL1_DAILYLOGIN.Config[key] = value
-        end
+    local now = CurTime()
+    local nextAllowed = updateCooldown[player] or 0
+    if nextAllowed > now then
+        return
     end
+
+    updateCooldown[player] = now + updateDelay
+
+    local title = sanitizeText(net.ReadString())
+    local subtitle = sanitizeText(net.ReadString())
+    local body = sanitizeText(net.ReadString())
+    local autoShow = sanitizeBool(net.ReadBool())
+
+    FASTDL1_DAILYLOGIN.Config.Title = title
+    FASTDL1_DAILYLOGIN.Config.Subtitle = subtitle
+    FASTDL1_DAILYLOGIN.Config.BodyText = body
+    FASTDL1_DAILYLOGIN.Config.AutoShowOnSpawn = autoShow
 
     saveConfig()
+end)
+
+hook.Add("PlayerDisconnected", "fastdl1_dailylogin_config_cleanup", function(player)
+    updateCooldown[player] = nil
 end)
